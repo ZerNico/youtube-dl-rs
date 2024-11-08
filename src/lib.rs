@@ -830,9 +830,21 @@ impl YoutubeDl {
     pub fn download_to(&self, folder: impl AsRef<Path>) -> Result<(), Error> {
         let folder_str = folder.as_ref().to_string_lossy();
         let args = self.process_download_args(&folder_str);
-        self.run_process(args)?;
+        let ProcessResult {
+            stderr,
+            stdout: _,
+            exit_code,
+        } = self.run_process(args)?;
 
-        Ok(())
+        if exit_code.success() || self.ignore_errors {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8(stderr).unwrap_or_default();
+            Err(Error::ExitCode {
+                code: exit_code.code().unwrap_or(1),
+                stderr,
+            })
+        }
     }
 
     /// Download the file to the specified destination folder asynchronously.
@@ -840,9 +852,21 @@ impl YoutubeDl {
     pub async fn download_to_async(&self, folder: impl AsRef<Path>) -> Result<(), Error> {
         let folder_str = folder.as_ref().to_string_lossy();
         let args = self.process_download_args(&folder_str);
-        self.run_process_async(args).await?;
+        let ProcessResult {
+            stderr,
+            stdout: _,
+            exit_code,
+        } = self.run_process_async(args).await?;
 
-        Ok(())
+        if exit_code.success() || self.ignore_errors {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8(stderr).unwrap_or_default();
+            Err(Error::ExitCode {
+                code: exit_code.code().unwrap_or(1),
+                stderr,
+            })
+        }
     }
 }
 
